@@ -219,3 +219,10 @@ __marimo__/
 
 README_old.md
 test_req.md
+
+
+.env
+data/
+chroma_db/
+uploads/
+__pycache__/
