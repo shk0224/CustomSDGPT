@@ -1,20 +1,24 @@
 # CustomSDGPT
 
-CustomSDGPT is an open-source agentic AI chatbot built with Python and modern AI frameworks. It combines Google Gemini with LangGraph and LangChain to support conversational AI, tool usage, document-based question answering, web search, and conversation memory.
+CustomSDGPT is an open-source agentic AI chatbot built with Python and modern AI frameworks. It supports multiple language models, including Google Gemini and OpenAI models, while using LangGraph and LangChain for agent workflows, tool usage, document-based question answering, web search, conversation memory, and external data retrieval.
 
-The application uses FastAPI for the backend and provides a lightweight web interface for interacting with the AI assistant.
+The application uses FastAPI for the backend and provides a lightweight web interface where users can select a supported AI model and interact with the assistant.
 
 ---
 
 ## Key Features
 
-- AI-powered conversations using Google Gemini
+- AI-powered conversations using Google Gemini and OpenAI models
+- Model selection directly from the web interface
+- LangGraph-based agent workflow and tool execution
 - Real-time streaming responses
 - Upload and process PDF, DOCX, TXT, MD, PY, and CSV files
 - Retrieval-Augmented Generation (RAG) for questions about uploaded documents
 - Current web information retrieval through Tavily
+- County-level public health data retrieval through CDC PLACES
 - Conversation history and memory support
 - ChromaDB-based vector storage and retrieval
+- SQLite-based application data and LangGraph checkpoint storage
 - Simple browser-based chat interface
 - Docker support for containerized deployment
 - AWS deployment workflow with GitHub Actions, Amazon ECR, and EC2
@@ -27,13 +31,41 @@ CustomSDGPT brings several components together to create an agentic chatbot:
 
 - **FastAPI** handles the backend server and API requests.
 - **Jinja2** renders the web interface.
-- **LangGraph** manages the agent workflow and decision flow.
-- **LangChain** provides message handling, tools, and RAG-related components.
-- **Google Gemini** serves as the primary language model.
+- **LangGraph** manages the agent workflow, tool execution, and decision flow.
+- **LangChain** provides model integrations, message handling, tools, and RAG-related components.
+- **Google Gemini** provides supported Gemini language models.
+- **OpenAI** provides supported GPT language models.
 - **Tavily** allows the agent to retrieve current information from the web.
+- **CDC PLACES** provides county-level public health information through a custom tool.
 - **ChromaDB** stores embeddings for uploaded documents and supports similarity search.
-- **SQLite** stores conversation-related application data.
+- **SQLite** stores conversation-related application data and LangGraph checkpoints.
 - **Docker** packages the application for consistent deployment.
+
+The basic LangGraph tool workflow is:
+
+```text
+User
+  ↓
+Selected AI Model
+  ↓
+LangGraph Chatbot Node
+  ↓
+Does the model need a tool?
+   ↙              ↘
+ No               Yes
+ ↓                 ↓
+Answer          ToolNode
+                   ↓
+                 Tool
+                   ↓
+              Tool Result
+                   ↓
+             Chatbot Node
+                   ↓
+              Final Answer
+```
+
+This allows the selected language model to decide whether it can answer a question directly or whether it should use one of the available tools.
 
 ---
 
@@ -45,6 +77,7 @@ Before running the project, make sure the following are available:
 - pip or conda
 - Git
 - Google API key for Gemini
+- OpenAI API key for OpenAI models
 - Tavily API key for web search
 
 For cloud deployment, you may also need:
@@ -97,7 +130,9 @@ Create a `.env` file inside the project root directory and add the required API 
 
 ```env
 GOOGLE_API_KEY=your_google_api_key
-GOOGLE_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-2.5-flash
+
+OPENAI_API_KEY=your_openai_api_key
 
 TAVILY_API_KEY=your_tavily_api_key
 
@@ -141,21 +176,89 @@ in your browser.
 CustomSDGPT/
 │
 ├── app.py                  # FastAPI application and chat endpoints
-├── agent.py                # LangGraph agent workflow and orchestration
+├── agent.py                # LangGraph agent workflow and model selection
 ├── database.py             # Conversation and persistence operations
 ├── rag.py                  # Document processing and RAG functionality
 ├── tools.py                # Tools available to the AI agent
 ├── requirements.txt        # Project dependencies
 ├── Dockerfile              # Docker image configuration
 ├── .dockerignore           # Files excluded from Docker builds
+├── .gitignore              # Files excluded from Git
 │
 ├── templates/
 │   └── index.html          # Web interface
 │
 ├── uploads/                # Uploaded user documents
-├── data/                   # SQLite database and application data
+├── data/                   # SQLite databases and application data
 └── chroma_db/              # ChromaDB vector storage
 ```
+
+---
+
+## Available Agent Capabilities
+
+The LangGraph agent can use different capabilities depending on the user's request.
+
+### Normal Conversation
+
+The selected Gemini or OpenAI model can answer normal questions directly without using an external tool.
+
+### Web Search
+
+For current or time-sensitive information, the agent can use Tavily to retrieve information from the web.
+
+### Document Search
+
+Uploaded documents are processed and stored for Retrieval-Augmented Generation (RAG). The agent can retrieve relevant information when the user asks questions about uploaded files.
+
+### Conversation Memory
+
+The application includes tools for saving and recalling useful information associated with conversations.
+
+### Calculator
+
+The agent can use a calculator tool for supported mathematical calculations.
+
+### CDC PLACES Community Health Tool
+
+CustomSDGPT includes a custom public health data tool that retrieves supported county-level health information from CDC PLACES.
+
+For example, the user can ask:
+
+```text
+What is the diabetes prevalence in Cherokee County, Georgia?
+```
+
+The agent can determine that the CDC PLACES tool is appropriate, call the tool, receive the public health data, and use the result to generate a readable response.
+
+---
+
+## Model Selection
+
+CustomSDGPT supports model selection from the web interface.
+
+The application can route requests to supported models from different providers while keeping the same LangGraph workflow and tools.
+
+The general model flow is:
+
+```text
+User selects a model
+        ↓
+     FastAPI
+        ↓
+   LangGraph Agent
+        ↓
+Selected Model Provider
+   ↙             ↘
+Gemini          OpenAI
+   \             /
+    \           /
+     Same Tools
+        ↓
+   Final Answer
+```
+
+This design allows the application to use different language model providers without creating a separate agent workflow for every provider.
 
 ---
 
@@ -338,7 +441,8 @@ AWS_DEFAULT_REGION
 ECR_REPO
 
 GOOGLE_API_KEY
-GOOGLE_MODEL
+GEMINI_MODEL
+OPENAI_API_KEY
 TAVILY_API_KEY
 LANGSMITH_TRACING
 LANGSMITH_ENDPOINT
@@ -361,11 +465,13 @@ Example configuration:
 ```text
 AWS_DEFAULT_REGION=us-east-1
 ECR_REPO=customsdgpt
-GOOGLE_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-2.5-flash
 LANGSMITH_TRACING=true
 LANGSMITH_ENDPOINT=https://api.smith.langchain.com
 LANGSMITH_PROJECT=customsdgpt
 ```
+
+Never store actual API keys directly in the source code or README file.
 
 ---
 
@@ -391,39 +497,59 @@ The workflow is responsible for automating the deployment process. A typical run
 
 After starting the application locally or deploying it to a server, you can:
 
-1. Start a normal conversation with the AI assistant.
-2. Upload supported documents.
-3. Ask questions based on the uploaded content.
-4. Request current information using web search.
-5. Perform supported tool-based tasks.
-6. Continue conversations using stored chat history.
+1. Select a supported Gemini or OpenAI model.
+2. Start a normal conversation with the AI assistant.
+3. Upload supported documents.
+4. Ask questions based on uploaded content using RAG.
+5. Request current information using web search.
+6. Retrieve supported county-level public health information from CDC PLACES.
+7. Perform calculations and other supported tool-based tasks.
+8. Continue conversations using stored chat history and memory.
 
 ---
 
 ## Example Prompts
 
-Ask about an uploaded document:
+### Normal Conversation
+
+```text
+Explain LangGraph in simple terms.
+```
+
+### Ask About an Uploaded Document
 
 ```text
 Summarize the uploaded PDF.
 ```
 
-Search for current information:
+### Search for Current Information
 
 ```text
 Search the web for the latest AI agent news.
 ```
 
-Use document context:
+### Use Document Context
 
 ```text
 Based on my uploaded document, what are the key points?
 ```
 
-Use the calculator:
+### Use the Calculator
 
 ```text
 Calculate 125 * 48 / 6.
+```
+
+### Use the CDC PLACES Tool
+
+```text
+What is the diabetes prevalence in Cherokee County, Georgia?
+```
+
+Another example:
+
+```text
+What is the diabetes prevalence in Forsyth County, Georgia?
 ```
 
 ---
@@ -432,6 +558,7 @@ Calculate 125 * 48 / 6.
 
 - Never commit the `.env` file or API keys to GitHub.
 - Store deployment credentials using GitHub Secrets.
+- Keep local application data, uploaded files, and vector databases out of the public repository when appropriate.
 - Avoid using `reload=True` when running Uvicorn in production.
 - Make sure the required application port is correctly configured.
 - Use restrictive security group and IAM permissions for production deployments.
@@ -443,12 +570,6 @@ Calculate 125 * 48 / 6.
 
 Contributions and improvements are welcome.
 
-A typical contribution workflow is:
-
-1. Fork the repository.
-2. Create a separate branch for your changes.
-3. Implement and test the changes.
-4. Open a pull request.
 
 ---
 
