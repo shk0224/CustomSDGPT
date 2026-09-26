@@ -515,13 +515,26 @@
                 onkeydown="handleKeyDown(event)"
             ></textarea>
 
+            
+            
             <select id="modelSelect" class="model-select" title="Select model">
-                <option value="gemini-2.5-flash">gemini-2.5-flash</option>
-                <option value="gemini-2.5-pro">gemini-2.5-pro</option>
-                <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
-                <option value="gemini-1.5-flash">gemini-1.5-flash</option>
-                <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+
+                <optgroup label="Google Gemini">
+                    <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                    <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                    <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
+                    <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                </optgroup>
+
+                <optgroup label="OpenAI">
+                    <option value="gpt-5.6-sol">GPT-5.6 Sol</option>
+                    <option value="gpt-5.6-terra">GPT-5.6 Terra</option>
+                    <option value="gpt-5.6-luna">GPT-5.6 Luna</option>
+                </optgroup>
             </select>
+
+  
 
             <button class="mic-btn" id="micBtn" onclick="toggleDictation()" title="Dictate">
                 🎙️
